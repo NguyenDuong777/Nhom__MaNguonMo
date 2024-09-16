@@ -28,7 +28,7 @@ def matrix_multiplication():
 
 # Tao giao dien
 win = tk.Tk()
-win.title("Nhan hai ma tran");
+win.title("Nhân hai ma trận");
 # win.geometry('400x400')
 
 # Ma trận A
