@@ -30,30 +30,30 @@ def matrix_multiplication():
 win = tk.Tk()
 win.title("Nhân hai ma trận");
 # win.geometry('400x400')
-
+win.configure(bg="lightcyan")
 # Ma trận A
-label_matrix_A = tk.Label(win, text="Ma trận A:")
+label_matrix_A = tk.Label(win, text="Ma trận A:", highlightbackground="blue", highlightcolor="blue", highlightthickness=2, bg="lightgray")
 label_matrix_A.grid(row=0, column=0, padx=10, pady=10)
 
-entry_matrix_A = tk.Text(win, height=5, width=20)
+entry_matrix_A = tk.Text(win, height=5, width=20, highlightbackground="green", highlightcolor="green", highlightthickness=2)
 entry_matrix_A.grid(row=1, column=0, padx=10, pady=10)
 
 # Ma trận B
-label_matrix_B = tk.Label(win, text="Ma trận B:")
+label_matrix_B = tk.Label(win, text="Ma trận B:", highlightbackground="blue", highlightcolor="blue", highlightthickness=2, bg="lightgray")
 label_matrix_B.grid(row=0, column=1, padx=10, pady=10)
 
-entry_matrix_B = tk.Text(win, height=5, width=20)
+entry_matrix_B = tk.Text(win, height=5, width=20, highlightbackground="green", highlightcolor="green", highlightthickness=2)
 entry_matrix_B.grid(row=1, column=1, padx=10, pady=10)
 
 # Nút tính toán
-btn_calculate = tk.Button(win, text="Tính toán", command=matrix_multiplication)
+btn_calculate = tk.Button(win, text="Tính toán", command=matrix_multiplication, highlightbackground="red", highlightthickness=2)
 btn_calculate.grid(row=2, column=0, columnspan=2, pady=10)
 
 # Kết quả
-label_result = tk.Label(win, text="Kết quả:")
+label_result = tk.Label(win, text="Kết quả:", highlightbackground="blue", highlightcolor="blue", highlightthickness=2, bg="lightgray")
 label_result.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
 
-entry_result = tk.Text(win, height=5, width=40, state=tk.DISABLED)
+entry_result = tk.Text(win, height=5, width=40, state=tk.DISABLED, highlightbackground="green", highlightcolor="green", highlightthickness=2)
 entry_result.grid(row=4, column=0, columnspan=2, padx=10, pady=10)
 
 win.mainloop()
