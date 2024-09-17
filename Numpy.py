@@ -26,6 +26,14 @@ def matrix_multiplication():
         entry_result.insert(tk.END, result_str)
         entry_result.config(state=tk.DISABLED)
 
+# Ham xoa du lieu
+def clear_matrices():
+    entry_matrix_A.delete("1.0", tk.END)  # Xóa dữ liệu trong ô nhập ma trận A
+    entry_matrix_B.delete("1.0", tk.END)  # Xóa dữ liệu trong ô nhập ma trận B
+    entry_result.config(state=tk.NORMAL)
+    entry_result.delete("1.0", tk.END)    # Xóa kết quả
+    entry_result.config(state=tk.DISABLED)
+    
 # Tao giao dien
 win = tk.Tk()
 win.title("Nhân hai ma trận");
@@ -55,5 +63,9 @@ label_result.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
 
 entry_result = tk.Text(win, height=5, width=40, state=tk.DISABLED, highlightbackground="green", highlightcolor="green", highlightthickness=2)
 entry_result.grid(row=4, column=0, columnspan=2, padx=10, pady=10)
+
+# Nút xóa dữ liệu
+btn_clear = tk.Button(win, text="Xóa dữ liệu", command=clear_matrices)
+btn_clear.grid(row=5, column=0, columnspan=2, pady=10)
 
 win.mainloop()
