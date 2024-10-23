@@ -11,7 +11,7 @@ w = pygame.display.set_mode((chieu_dai, chieu_rong))
 pygame.display.set_caption('Game Bắn Chim')
 
 # Tạo nền game
-anh_nen = pygame.image.load('BACKGROUND.jpg')
+anh_nen = pygame.image.load('BG2.png')
 anh_nen = pygame.transform.scale(anh_nen, (chieu_dai, chieu_rong))
 
 # Font chữ hiển thị điểm số
