@@ -75,21 +75,18 @@ def display_result(result):
 win = tk.Tk()
 win.title("Tính toán ma trận")
 
-# Matrix A
 label_matrix_A = tk.Label(win, text="Matrix A:")
 label_matrix_A.grid(row=0, column=0, padx=10, pady=10)
 
 entry_matrix_A = tk.Text(win, height=5, width=20)
 entry_matrix_A.grid(row=1, column=0, padx=10, pady=10)
 
-# Matrix B
 label_matrix_B = tk.Label(win, text="Matrix B:")
 label_matrix_B.grid(row=0, column=1, padx=10, pady=10)
 
 entry_matrix_B = tk.Text(win, height=5, width=20)
 entry_matrix_B.grid(row=1, column=1, padx=10, pady=10)
 
-# Buttons for operations
 btn_calculate = tk.Button(win, text="Multiply Matrices", command=matrix_multiplication)
 btn_calculate.grid(row=2, column=0, columnspan=2, pady=5)
 
@@ -99,7 +96,6 @@ btn_addition.grid(row=3, column=0, columnspan=2, pady=5)
 btn_inversion = tk.Button(win, text="Invert Matrices", command=matrix_inversion)
 btn_inversion.grid(row=4, column=0, columnspan=2, pady=5)
 
-# Result display
 label_result = tk.Label(win, text="Result:")
 label_result.grid(row=5, column=0, columnspan=2, padx=10, pady=10)
 
