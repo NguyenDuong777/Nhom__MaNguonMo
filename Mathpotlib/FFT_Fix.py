@@ -25,12 +25,25 @@ fourierTransform = np.fft.fft(amplitude)
 # Tính các tần số tương ứng với các hệ số Fourier
 frequencies = np.fft.fftfreq(len(amplitude), samplingInterval)
 
-# Lọc tín hiệu chỉ giữ lại tần số 4Hz, loại bỏ 7Hz
-filteredFourier = np.copy(fourierTransform)  # Bản sao của phổ Fourier gốc
-tolerance = 0.1  # Dung sai để xác định tần số 4Hz
+# Chọn bộ lọc
+print("Chọn bộ lọc:")
+print("1. Bộ lọc thông thấp")
+print("2. Bộ lọc thông cao")
+filter_choice = input("Nhập lựa chọn của bạn (1 hoặc 2): ")
 
-# Loại bỏ tần số 7Hz và các tần số khác
-filteredFourier[np.abs(frequencies - signal1Frequency) > tolerance] = 0
+cutoff_frequency = 5  # Ngưỡng tần số cắt, có thể thay đổi tùy ý
+
+# Áp dụng bộ lọc dựa trên lựa chọn
+filteredFourier = np.copy(fourierTransform)  # Bản sao của phổ Fourier gốc
+
+if filter_choice == '1':
+    # Bộ lọc thông thấp: Chỉ giữ lại các tần số dưới ngưỡng
+    filteredFourier[np.abs(frequencies) > cutoff_frequency] = 0
+elif filter_choice == '2':
+    # Bộ lọc thông cao: Chỉ giữ lại các tần số trên ngưỡng
+    filteredFourier[np.abs(frequencies) < cutoff_frequency] = 0
+else:
+    print("Lựa chọn không hợp lệ! Sử dụng tín hiệu gốc.")
 
 # Biến đổi ngược Fourier để đưa tín hiệu đã lọc về miền thời gian
 filteredAmplitude = np.fft.ifft(filteredFourier)
@@ -51,8 +64,8 @@ axis[1].plot(np.abs(frequencies), np.abs(fourierTransform))
 axis[1].set_xlabel('Tần số (Hz)')
 axis[1].set_ylabel('Biên độ')
 
-# Biểu diễn tín hiệu đã lọc (chỉ còn 4Hz)
-axis[2].set_title('Tín hiệu đã lọc (chỉ còn 4Hz)')
+# Biểu diễn tín hiệu đã lọc
+axis[2].set_title('Tín hiệu đã lọc')
 axis[2].plot(time, filteredAmplitude.real)  # Lấy phần thực của tín hiệu
 axis[2].set_xlabel('Thời gian')
 axis[2].set_ylabel('Biên độ')
