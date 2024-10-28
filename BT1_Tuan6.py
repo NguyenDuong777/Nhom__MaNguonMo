@@ -1,180 +1,211 @@
-import tkinter as tk
-from tkinter import filedialog, messagebox
-from PIL import Image, ImageTk
-import cv2
 import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn import neighbors
+from sklearn.linear_model import LinearRegression
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.svm import SVR
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.preprocessing import StandardScaler
+import tkinter as tk
+from tkinter import messagebox, filedialog
 import matplotlib.pyplot as plt
+import os
 
-# Hàm để chọn ảnh
-def choose_image():
-    global img, img_path, img_display
-    img_path = filedialog.askopenfilename(filetypes=[("Image files", "*.jpg *.jpeg *.png")])
-    if img_path:
-        img = cv2.imread(img_path)
-        img_display = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        display_image_in_label(img_display)
-        messagebox.showinfo("Info", "Image selected successfully.")
+# Global variables to store the models and results
+scaler = StandardScaler()
 
-# Hàm chụp ảnh từ camera
-def capture_image():
-    global img, img_display
-    cap = cv2.VideoCapture(0)  # Mở camera
-    if not cap.isOpened():
-        messagebox.showwarning("Warning", "Could not open camera.")
-        return
+models = {
+    'KNN': neighbors.KNeighborsRegressor(n_neighbors=3, p=2),
+    'Linear Regression': LinearRegression(),
+    'Decision Tree': DecisionTreeRegressor(),
+    'SVM (Linear Kernel)': SVR(kernel='linear'),
+    'SVM (RBF Kernel)': SVR(kernel='rbf', C=1.0, epsilon=0.1)
+}
 
-    ret, frame = cap.read()  # Đọc khung hình từ camera
-    if ret:
-        img = frame  # Lưu khung hình vào biến img
-        img_display = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        display_image_in_label(img_display)
-        messagebox.showinfo("Info", "Image captured successfully.")
-    else:
-        messagebox.showwarning("Warning", "Failed to capture image.")
+results = {}
 
-    cap.release()  # Giải phóng camera
+def choose_csv_and_predict():
+    global results  # Ensure results is treated as global
+    try:
+        csv_file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
+        if not csv_file_path:
+            return  # Exit if no file is selected
 
-# Hàm hiển thị ảnh lên giao diện bên cạnh các nút
-def display_image_in_label(image):
-    image_pil = Image.fromarray(image)
-    image_pil.thumbnail((300, 300))  # Thay đổi kích thước ảnh cho vừa với Label
-    image_tk = ImageTk.PhotoImage(image_pil)
-    image_label.config(image=image_tk)
-    image_label.image = image_tk  # Lưu tham chiếu để tránh bị thu hồi bộ nhớ
+        # Read the CSV file
+        df = pd.read_csv(csv_file_path)
 
-# Hàm tăng độ nét
-def sharpen_image():
-    global sharpened
-    if img is None:
-        messagebox.showwarning("Warning", "Please select or capture an image first.")
-        return
+        # Check if CSV has sufficient columns
+        if df.shape[1] < 6:
+            messagebox.showerror("Error", "CSV file phải có ít nhất 6 cột.")
+            return
 
-    kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
-    sharpened = cv2.filter2D(img, -1, kernel)
-    display_with_matplotlib(sharpened, "Sharpened")
+        # Select sample size
+        sample_size = min(200, len(df))  # Choose up to 200 rows if available
+        x = np.array(df.iloc[:sample_size, 0:5]).astype(np.float64)
+        y = np.array(df.iloc[:sample_size, 5]).astype(np.float64)
 
-# Hàm chuyển ảnh sang đen trắng
-def grayscale_image():
-    global gray
-    if img is None:
-        messagebox.showwarning("Warning", "Please select or capture an image first.")
-        return
+        # Split data
+        X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=1)
 
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    display_with_matplotlib(gray, "Grayscale", cmap='gray')
+        # Get selected model name
+        selected_model_name = selected_algorithm.get()
+        model = models[selected_model_name]
 
-# Hàm giảm độ phân giải
-def reduce_resolution_image():
-    global reduced_resolution
-    if img is None:
-        messagebox.showwarning("Warning", "Please select or capture an image first.")
-        return
+        # Fit model and predict, with scaling for all models
+        X_train_scaled = scaler.fit_transform(X_train)
+        X_test_scaled = scaler.transform(X_test)
+        model.fit(X_train_scaled, y_train)
+        y_predict = model.predict(X_test_scaled)
 
-    reduced_resolution = reduce_resolution(img)
-    display_with_matplotlib(reduced_resolution, "Reduced Resolution")
+        # Calculate errors
+        mse = mean_squared_error(y_test, y_predict)
+        mae = mean_absolute_error(y_test, y_predict)
+        rmse = np.sqrt(mse)
 
-# Hàm giảm độ phân giải của ảnh sử dụng fx và fy
-def reduce_resolution(image, scale=0.1):
-    reduced = cv2.resize(image, (0, 0), fx=scale, fy=scale)
-    return reduced
+        # Store results
+        results[selected_model_name] = {'MSE': mse, 'MAE': mae, 'RMSE': rmse}
 
-# Hàm làm đẹp ảnh (xóa tàn nhang, mụn, làm mịn da)
-def beauty_image():
-    global beauty
-    if img is None:
-        messagebox.showwarning("Warning", "Please select or capture an image first.")
-        return
+        # Plot individual performance
+        plot_individual_performance(selected_model_name, y_test, y_predict)
 
-    # Làm mịn da bằng cách áp dụng bộ lọc Bilateral Filter
-    smooth = cv2.bilateralFilter(img, d=15, sigmaColor=75, sigmaSpace=75)
+        # Save results to CSV
+        save_results_to_csv(results)
 
-    # Chuyển ảnh gốc sang HSV để tách màu sắc
-    img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        # Show metrics
+        messagebox.showinfo("Prediction Result", f"{selected_model_name} - MSE: {mse:.2f}, MAE: {mae:.2f}, RMSE: {rmse:.2f}")
 
-    # Giảm độ sáng (vì một số khuyết điểm có thể sáng hơn màu da)
-    h, s, v = cv2.split(img_hsv)
-    v = cv2.subtract(v, 30)  # Giảm độ sáng
-    img_hsv = cv2.merge((h, s, v))
-    img_corrected = cv2.cvtColor(img_hsv, cv2.COLOR_HSV2BGR)
+    except ValueError as ve:
+        messagebox.showerror("Error", f"Lỗi giá trị: {ve}")
+    except Exception as e:
+        messagebox.showerror("Error", f"Đã xảy ra lỗi: {e}")
 
-    # Kết hợp hình ảnh đã làm mịn với hình ảnh đã điều chỉnh màu sắc
-    beauty = cv2.addWeighted(smooth, 0.7, img_corrected, 0.3, 0)
-
-    # Hiển thị ảnh đã xử lý
-    display_with_matplotlib(beauty, "Beauty")
-
-# Hàm hiển thị ảnh bằng matplotlib
-def display_with_matplotlib(image, title, cmap=None):
-    plt.figure(figsize=(5, 5))
-    if cmap:
-        plt.imshow(image, cmap=cmap)
-    else:
-        plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-    plt.title(title)
-    plt.axis('off')
+def plot_individual_performance(algorithm_name, y_test, y_predict):
+    plt.figure(figsize=(8, 5))
+    plt.scatter(y_test, y_predict, color='blue', label='Predicted vs Actual')
+    plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], color='red', linewidth=2, label='Perfect Prediction')
+    plt.title(f'Performance of {algorithm_name}')
+    plt.xlabel('Actual Values')
+    plt.ylabel('Predicted Values')
+    plt.legend()
+    plt.grid()
+    plt.tight_layout()
     plt.show()
 
-# Hàm để lưu tất cả ảnh đã xử lý
-def save_image():
-    if sharpened is None and gray is None and reduced_resolution is None and beauty is None:
-        messagebox.showwarning("Warning", "Please apply at least one filter before saving.")
+def save_results_to_csv(results):
+    results_df = pd.DataFrame(results).T
+    results_df.to_csv('results_comparison.csv', index=True)
+
+def compare_algorithms():
+    if not results:
+        messagebox.showerror("Error", "Không có kết quả để so sánh.")
+        return
+    plot_comparison(results)
+
+def plot_comparison(results):
+    algorithms = list(results.keys())
+    mse_values = [results[algo]['MSE'] for algo in algorithms]
+    mae_values = [results[algo]['MAE'] for algo in algorithms]
+    rmse_values = [results[algo]['RMSE'] for algo in algorithms]
+
+    x = np.arange(len(algorithms))  # Label locations
+    plt.figure(figsize=(12, 6))
+    plt.bar(x - 0.2, mse_values, 0.2, label='MSE')
+    plt.bar(x, mae_values, 0.2, label='MAE')
+    plt.bar(x + 0.2, rmse_values, 0.2, label='RMSE')
+
+    plt.ylabel('Error Values')
+    plt.title('Comparison of Error Metrics for Different Algorithms')
+    plt.xticks(x, algorithms)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+def input_new_data():
+    if not results:
+        messagebox.showerror("Error", "Vui lòng chọn file CSV và thực hiện dự đoán trước.")
         return
 
-    save_directory = filedialog.askdirectory(title="Select Directory to Save Images")
-    if save_directory:
-        # Lưu các ảnh đã xử lý
-        if sharpened is not None:
-            cv2.imwrite(f"{save_directory}/sharpened.png", sharpened)
-        if gray is not None:
-            cv2.imwrite(f"{save_directory}/grayscale.png", gray)
-        if reduced_resolution is not None:
-            cv2.imwrite(f"{save_directory}/reduced_resolution.png", reduced_resolution)
-        if beauty is not None:
-            cv2.imwrite(f"{save_directory}/beauty.png", beauty)
-        messagebox.showinfo("Info", "Images saved successfully!")
+    input_window = tk.Toplevel(root)
+    input_window.title("Nhập Dữ liệu Mới")
+    labels = ["HS (Hours Studied)", "PS (Previous Scores)", "EA (Extracurricular Activities)", "SH (Sleep Hours)", "SQP (Sample Question Papers Practiced)", "PI (Performance Index)"]
+    entries = []
 
-# Khởi tạo giao diện
+    for idx, text in enumerate(labels):
+        tk.Label(input_window, text=text).grid(row=idx, column=0, padx=10, pady=5, sticky='e')
+        entry = tk.Entry(input_window)
+        entry.grid(row=idx, column=1, padx=10, pady=5)
+        entries.append(entry)
+
+    def predict_and_compare():
+        try:
+            input_features = np.array([float(entry.get()) for entry in entries[:5]]).reshape(1, -1)
+            pi_actual = entries[5].get()
+
+            # Scale the input features
+            input_features_scaled = scaler.transform(input_features)
+            selected_model_name = selected_algorithm.get()
+            model = models[selected_model_name]
+            pi_predicted = model.predict(input_features_scaled)[0]
+
+            if pi_actual:
+                pi_actual = float(pi_actual)
+                mse = (pi_actual - pi_predicted) ** 2
+                mae = abs(pi_actual - pi_predicted)
+                rmse = np.sqrt(mse)
+                result_message = (f"Predicted PI: {pi_predicted:.2f}\n"
+                                  f"Actual PI: {pi_actual:.2f}\n"
+                                  f"MSE: {mse:.2f}\n"
+                                  f"MAE: {mae:.2f}\n"
+                                  f"RMSE: {rmse:.2f}")
+            else:
+                result_message = f"Predicted PI: {pi_predicted:.2f}"
+
+            messagebox.showinfo("Prediction Result", result_message)
+
+        except ValueError:
+            messagebox.showerror("Error", "Vui lòng nhập tất cả các giá trị số hợp lệ.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Đã xảy ra lỗi: {e}")
+
+    predict_btn = tk.Button(input_window, text="Predict", command=predict_and_compare)
+    predict_btn.grid(row=6, column=0, columnspan=2, pady=10)
+    exit_btn = tk.Button(input_window, text="Thoát", command=input_window.destroy)
+    exit_btn.grid(row=7, column=0, columnspan=2, pady=5)
+
+def exit_application():
+    root.destroy()
+
+# Create main GUI window
 root = tk.Tk()
-root.title("Image Filter Application")
+root.title("Student Performance Predictor")
+root.geometry("400x300")
 
-# Tạo một frame để chứa các nút và hình ảnh
-frame_controls = tk.Frame(root)
-frame_controls.pack(side=tk.LEFT, padx=10, pady=10)
+# Create the StringVar for selected algorithm
+selected_algorithm = tk.StringVar(value='KNN')
 
-btn_choose = tk.Button(frame_controls, text="Choose Image", command=choose_image)
-btn_choose.pack(pady=10)
+# Description label
+tk.Label(root, text="Chọn thuật toán:", font=("Arial", 12)).pack(pady=10)
 
-btn_capture = tk.Button(frame_controls, text="Capture Image", command=capture_image)
-btn_capture.pack(pady=10)
+# Algorithm selection dropdown menu
+algorithm_menu = tk.OptionMenu(root, selected_algorithm, *models.keys())
+algorithm_menu.pack(pady=5)
 
-btn_sharpen = tk.Button(frame_controls, text="Sharpen Image", command=sharpen_image)
-btn_sharpen.pack(pady=10)
+# Button to select CSV file and predict performance
+csv_button = tk.Button(root, text="Chọn file CSV và Dự đoán", command=choose_csv_and_predict)
+csv_button.pack(pady=5)
 
-btn_grayscale = tk.Button(frame_controls, text="Grayscale Image", command=grayscale_image)
-btn_grayscale.pack(pady=10)
+# Button to compare algorithms
+compare_button = tk.Button(root, text="So sánh Thuật toán", command=compare_algorithms)
+compare_button.pack(pady=5)
 
-btn_reduce = tk.Button(frame_controls, text="Reduce Resolution", command=reduce_resolution_image)
-btn_reduce.pack(pady=10)
+# Button to input new data and make predictions
+input_button = tk.Button(root, text="Nhập Dữ liệu Mới", command=input_new_data)
+input_button.pack(pady=5)
 
-btn_beauty = tk.Button(frame_controls, text="Beauty", command=beauty_image)
-btn_beauty.pack(pady=10)
+# Button to exit the application
+exit_button = tk.Button(root, text="Thoát", command=exit_application)
+exit_button.pack(pady=5)
 
-btn_save = tk.Button(frame_controls, text="Save Images", command=save_image)
-btn_save.pack(pady=10)
-
-btn_exit = tk.Button(frame_controls, text="Exit", command=root.quit)
-btn_exit.pack(pady=10)
-
-# Tạo Label để hiển thị ảnh gốc
-image_label = tk.Label(root)
-image_label.pack(side=tk.RIGHT, padx=10, pady=10)
-
-img = None
-img_path = ""
-img_display = None
-sharpened = None
-gray = None
-reduced_resolution = None
-beauty = None
-
+# Run the main loop
 root.mainloop()
