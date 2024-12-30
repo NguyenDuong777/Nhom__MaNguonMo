@@ -1,34 +1,17 @@
 import cv2
-import sys
 import time
 import hand as htm
 import numpy as np
 import serial
 
-# Kiểm tra nếu có đủ đối số dòng lệnh (COM port và độ phân giải)
-if len(sys.argv) < 3:
-    print("Thiếu đối số: cổng COM và độ phân giải")
-    sys.exit()
-
-# Lấy cổng COM và độ phân giải từ đối số dòng lệnh
-com_port = sys.argv[1]
-resolution = sys.argv[2]
-
-ser = serial.Serial(com_port, 115200, 8, "N", 1)
+ser = serial.Serial("COM4", 115200, 8, "N", 1)
 
 cap = cv2.VideoCapture(0)
 detector = htm.handDetector(detectionCon=1)
 
 # Đặt độ phân giải cho Camera
-if resolution == "480":
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-elif resolution == "720":
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-elif resolution == "1080":
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 width = int(cap.get(3))
 height = int(cap.get(4))
 
@@ -55,7 +38,7 @@ def mouse_event(event, x, y, flags, param):
 # Tạo cửa sổ trước khi gọi setMouseCallback
 cv2.namedWindow("Cua so")
 cv2.setMouseCallback("Cua so", mouse_event)
-cv2.resizeWindow("Cua so", 1280, 720)
+
 def draw_button(frame, x1, y1, x2, y2, text, status):
     state = ": ON" if status else ": OFF"
     text = text + state
@@ -202,9 +185,6 @@ while True:
         click_button(start_x, start_y, start_x + 100, start_y + 100, i)
 
         start_x += (100 + range_button)
-
-    # Điều chỉnh kích thước khung hình để hiển thị
-    frame = cv2.resize(frame, (1280, 720))  # Giữ kích thước cửa sổ hiển thị
 
     # Hiển thị kết quả
     cv2.imshow("Cua so", frame)

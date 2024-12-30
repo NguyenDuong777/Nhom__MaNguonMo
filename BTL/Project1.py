@@ -45,6 +45,8 @@ mouseX, mouseY = -1, -1
 # Lưu giá trị PWM trước đó
 last_pwm_value = 0
 last_pwm2_value = 0  # PWM2
+pwm_value_b = 0
+pwm2_value_b = 0
 
 # Xử lý sự kiện chuột
 def mouse_event(event, x, y, flags, param):
@@ -168,7 +170,9 @@ while True:
     cv2.putText(frame, f"PWM1: {pwm_value}", (pwm_slider_x1, pwm_slider_y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
 
     # Gửi giá trị PWM tới STM32 cho PWM1
-    ser.write(f"P1{pwm_value:03d}".encode())
+    if(pwm_value != pwm_value_b):
+        ser.write(f"P1{pwm_value:03d}".encode())
+    pwm_value_b =pwm_value
 
     # Vị trí thanh trượt PWM2
     pwm_slider_y1_2 = pwm_slider_y2 + 50  # Tạo khoảng cách giữa 2 thanh trượt
@@ -186,7 +190,10 @@ while True:
     cv2.putText(frame, f"PWM2: {pwm2_value}", (pwm_slider_x1, pwm_slider_y1_2 - 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
 
     # Gửi giá trị PWM tới STM32 cho PWM2
-    ser.write(f"P2{pwm2_value:03d}".encode())
+
+    if(pwm2_value != pwm2_value_b):
+        ser.write(f"P2{pwm2_value:03d}".encode())
+    pwm2_value_b = pwm2_value
 
     start_x = (width // 6 - 100) // 2
     range_button = start_x * 2
